@@ -94,4 +94,4 @@ def getMaskFromOSM(city='Berlin', storage=''):
 
 if __name__ == '__main__':
 
-    getMaskFromOSM(city = 'Berlin', storage = r'C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\ori\Berlin')
+    getMaskFromOSM(city = 'Berlin', storage = r'E:\ETH_Workplace\IPA\python-eda\utils')

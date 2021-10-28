@@ -3,4 +3,5 @@
 *.pkl
 *.npy
 *.pyc
+.idea\*
 
