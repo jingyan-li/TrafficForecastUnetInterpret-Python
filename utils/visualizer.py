@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+import datetime
 
 def one_prediction_sample(sample, path):
     '''
@@ -112,3 +112,11 @@ def input_indices_to_semantics(idx_arr):
             semantics.append(input_static_semantic_dict[i-108])
 
     return semantics
+
+
+def timeindex_to_time(idx_arr):
+    '''
+    A list of indices of time [0,288], return time in hour (24h)
+    '''
+    for i in idx_arr:
+        i*5//60
