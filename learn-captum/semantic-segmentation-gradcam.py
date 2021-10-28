@@ -74,3 +74,22 @@ rgb = decode_segmap(out_max.detach().cpu().squeeze().numpy())
 plt.imshow(rgb); plt.axis('off'); plt.show()
 
 #%%
+# def agg_segmentation_wrapper(inp):
+#     model_out = fcn(inp)['out']
+#     # Creates binary matrix with 1 for original argmax class for each pixel
+#     # and 0 otherwise. Note that this may change when the input is ablated
+#     # so we use the original argmax predicted above, out_max.
+#     selected_inds = torch.zeros_like(model_out[0:1]).scatter_(1, out_max, 1)
+#     return (model_out * selected_inds).sum(dim=(2,3))
+#
+# lgc = LayerGradCam(agg_segmentation_wrapper, fcn.backbone.layer4[2].conv3)
+# gc_attr = lgc.attribute(normalized_inp, target=6)
+
+#%%
+from captum.attr import Saliency
+sa = Saliency(fcn)
+normalized_inp.requires_grad = True
+attr = sa.attribute(normalized_inp, target=11)
+#%%
+attr = attr.detach().numpy()
+#%%

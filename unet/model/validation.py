@@ -19,11 +19,13 @@ from unet.model.Unet import UNet
 # simplified depth 5 model
 
 # please enter the source data root and submission root
-source_root = r"E:/ETH_Workplace/IPA/data/2021_IPA/ori"
-submission_root = r"E:/ETH_Workplace/IPA/data/2021_IPA/submission"
+source_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\ori"
+submission_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\submission"
 
-model_root = r"E:\ETH_Workplace\IPA\data\2021_IPA\UnetDeep_1632078207\checkpoint.pt"
+model_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\UnetDeep_1632078207\checkpoint.pt"
 mask_root = r"utils/masks.dict"
+
+figure_log_root = "unet/log/figures/"
 
 
 def load_h5_file(file_path):
@@ -49,7 +51,7 @@ class WrappedModel(torch.nn.Module):
     def forward(self, x):
         return self.module(x)
 
-#%%
+
 print(f"CUDA is available: {torch.cuda.is_available()}")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -73,51 +75,6 @@ static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float
 
 # load mask
 # mask_ = torch.from_numpy(mask_dict[city]["sum"] > 0).bool()
-
-#%%
-# use an example from training data
-# file_path = glob.glob(os.path.join(source_root, city, "training", f"2019-01-12_{city.lower()}_9ch.h5"))[0]
-file_path = glob.glob(os.path.join(source_root, city, "testing", f"2019-07-02_test.h5"))[0]
-# the date of the file
-all_data = load_h5_file(file_path)  # of size (3,12,495,436,9)
-x = np.moveaxis(all_data, -1, 2)  # of size (3,12,9,495,436)
-#%%
-x = torch.from_numpy(x).to(device)
-# reduce / stack 12 timeslots into 1
-x = x.reshape(x.shape[0], -1, x.shape[-2], x.shape[-1])  # of size (3,12*9,495,436)
-
-# concat the static data
-x = torch.cat([x, static.repeat(x.shape[0], 1, 1, 1)], axis=1)
-x = x / 255
-#%%
-# Visualize the input data
-import matplotlib.pyplot as plt
-
-tepoch = x[0, :9, :, :].cpu().float()
-tepoch = tepoch.numpy()*255
-
-print(f"Sum of the time epoch: {np.sum(tepoch)}")
-plt.imshow(tepoch[0,:,:])
-plt.colorbar()
-plt.show()
-#%%
-# Forward
-# with torch.no_grad():
-inputs = padd(x)
-pred = model(inputs)
-# expand
-pred = pred.view(pred.shape[0], 6, 8, pred.shape[-2], pred.shape[-1])
-res = pred[:, :, :, 1:, 6:-6].cpu().float()
-
-res = torch.clamp(res, 0, 255).permute(0, 1, 3, 4, 2).detach().numpy().astype(np.uint8) # of size
-
-#%%
-# Test Captum
-from captum.attr import IntegratedGradients
-ig = IntegratedGradients(model)
-x.requires_grad_()
-attr, delta = ig.attribute(x, return_convergence_delta=True)
-attr = attr.detach().numpy()
 
 #%%
 # get test data
