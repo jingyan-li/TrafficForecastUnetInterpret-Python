@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import datetime
+from datetime import datetime
+from matplotlib.colors import LogNorm
 
 def one_prediction_sample(sample, path):
     '''
@@ -46,7 +47,7 @@ def one_time_epoch(fig, axes, data, incidence=True):
     fig.colorbar(cbar, ax=axes, location="bottom", orientation="horizontal", pad=0.1, aspect=60)
 
 
-def attr_one_time_epoch(fig, axes, data, max, min):
+def attr_one_time_epoch(fig, axes, data, max, min, log_scale=True):
     '''
         Three plots per one time epoch (5 mins): average volume, average speed, incident level
         '''
@@ -54,10 +55,26 @@ def attr_one_time_epoch(fig, axes, data, max, min):
     volume_idx = np.arange(0, 8, 2)
     speed_idx = np.arange(1, 8, 2)
     incident_idx = 8
-
-    cbar = axes[0].imshow(np.mean(data[volume_idx, :, :], axis=0), vmin=min, vmax=max, cmap='RdBu_r')
-    axes[1].imshow(np.mean(data[speed_idx, :, :], axis=0), vmin=min, vmax=max, cmap='RdBu_r')
-    axes[2].imshow(data[incident_idx, :, :], vmin=min, vmax=max, cmap='RdBu_r')
+    if log_scale:
+        cbar = axes[0].imshow(np.mean(data[volume_idx, :, :], axis=0),
+                              cmap='RdBu_r', norm=LogNorm(vmin=min, vmax=max))
+        axes[1].imshow(np.mean(data[speed_idx, :, :], axis=0),
+                       cmap='RdBu_r', norm=LogNorm(vmin=min, vmax=max))
+        axes[2].imshow(data[incident_idx, :, :],
+                       cmap='RdBu_r', norm=LogNorm(vmin=min, vmax=max))
+    else:
+        cbar = axes[0].imshow(np.mean(data[volume_idx, :, :], axis=0),
+                              vmin=min,
+                              vmax=max,
+                              cmap='RdBu_r')
+        axes[1].imshow(np.mean(data[speed_idx, :, :], axis=0),
+                       vmin=min,
+                       vmax=max,
+                       cmap='RdBu_r')
+        axes[2].imshow(data[incident_idx, :, :],
+                       vmin=min,
+                       vmax=max,
+                       cmap='RdBu_r')
 
     axes[0].set_title("Average volume")
     axes[1].set_title("Average speed")
@@ -118,5 +135,9 @@ def timeindex_to_time(idx_arr):
     '''
     A list of indices of time [0,288], return time in hour (24h)
     '''
+    time_list = []
     for i in idx_arr:
-        i*5//60
+        h = i*5//60
+        m = i*5%60
+        time_list.append([h,m])
+    return time_list

@@ -26,8 +26,8 @@ source_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\ori"
 
 model_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\UnetDeep_1632078207\checkpoint_5.pt"
 
-figure_log_root = "unet/log/figures/"
-arr_log_root = "unet/log/attribution_pickle/"
+figure_log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\figures"
+arr_log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\attribution_pickle"
 
 
 print(f"CUDA is available: {torch.cuda.is_available()}")
@@ -50,12 +50,14 @@ static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float
 
 #%%
 # Load train data
-file_path = glob.glob(os.path.join(source_root, city, "training", f"2019-01-12_{city.lower()}_9ch.h5"))[0]
+DATE = "2019-09-29"
+TIME = 55
+file_path = glob.glob(os.path.join(source_root, city, "validation", f"{DATE}_{city.lower()}_9ch.h5"))[0]
 all_data = dataloader.load_h5_file(file_path)
 all_data = np.moveaxis(all_data, -1, 1)
 #%%
 # Choose a time epoch in train data as a train sample
-startt = 0
+startt = TIME
 # Train sample
 tepoch = all_data[startt:startt+12,:,:,:]
 # Ground truth (the following 6 time epochs)
@@ -82,17 +84,17 @@ tepoch = tepoch / 255
 #     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-input-startt{start_epoch}.png"),
 #                 bbox_inches="tight")
 #     plt.show()
-#%%
-# Visualize ground truth
-for i in range(6):
-    start_epoch = i
-    x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
-
-    fig, axes = plt.subplots(1, 2, sharey=True)
-    visualizer.one_time_epoch(fig, axes, x, incidence=False)
-    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
-                bbox_inches="tight")
-    plt.show()
+# #%%
+# # Visualize ground truth
+# for i in range(6):
+#     start_epoch = i
+#     x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
+#
+#     fig, axes = plt.subplots(1, 2, sharey=True)
+#     visualizer.one_time_epoch(fig, axes, x, incidence=False)
+#     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
+#                 bbox_inches="tight")
+#     plt.show()
 #%%
 
 # Preprocess of input
@@ -103,69 +105,105 @@ with torch.no_grad():
     pred = model(inputs)
 
 #%%
-# Visualize the prediction result
-for i in range(6):
-    start_epoch = i
-    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
-
-    fig, axes = plt.subplots(1, 2, sharey=True)
-    visualizer.one_time_epoch(fig, axes, x, incidence=False)
-    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
-                bbox_inches="tight")
-    plt.show()
-
-
-#%%
-
-# # Test captum
+# # Visualize the prediction result
+# for i in range(6):
+#     start_epoch = i
+#     x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
 #
-# # Input single sample
-# inputs.requires_grad = True
-#
-# # Attribution by Saliency
-# from captum.attr import Saliency
-#
-# TARGET_CHANNEL = 0
-# X = 256
-# Y = 256
-# sa = Saliency(model)
-#
-# attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL, X, Y))
-# attr = attr.detach().numpy()
-#
-# np.save(os.path.join(arr_log_root, os.path.split(file_path)[-1][:-3] + f"{startt}-saliency-target{TARGET_CHANNEL}-{X}-{Y}"), attr)
+#     fig, axes = plt.subplots(1, 2, sharey=True)
+#     visualizer.one_time_epoch(fig, axes, x, incidence=False)
+#     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
+#                 bbox_inches="tight")
+#     plt.show()
 #
 
 #%%
 
-# # Aggregate the target by channel
+# Test captum
+
+# Input single sample
+inputs.requires_grad = True
+
+# Attribution by Saliency
+from captum.attr import Saliency
+
+TARGET_CHANNEL = 1
+X = 256
+Y = 256
+sa = Saliency(model)
+
+attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL, X, Y))
+attr = attr.detach().numpy()
+
+np.save(os.path.join(arr_log_root, os.path.split(file_path)[-1][:-3] + f"{startt}-saliency-target{TARGET_CHANNEL}-{X}-{Y}"), attr)
+
+
+#%%
+
+# Aggregate the target by channel
+
+def model_wrapper_channel(inp):
+    '''
+    Wrap the model, the output becomes one value per each channel
+    '''
+    model_out = model(inp)
+    return model_out.sum(axis=(2, 3))
+
+def model_wrapper_firsttwoc(inp):
+    model_out = model(inp)
+    return model_out.reshape(model_out.shape[0],24,2,model_out.shape[-2],model_out.shape[-1]).sum(axis=1)
+
+
+# Forward by wrapper
+with torch.no_grad():
+    pred_wrapper = model_wrapper_firsttwoc(inputs)
+#%%
+from captum.attr import Saliency
+
+TARGET_CHANNEL = 0
+
+# Preserve gradients
+inputs.requires_grad = True
+sa = Saliency(model_wrapper_firsttwoc)
+
+attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL,X,Y))
+attr = attr.detach().numpy()
+
+np.save(os.path.join(arr_log_root, os.path.split(file_path)[-1][:-3] + f"{startt}-saliency-target-channel{TARGET_CHANNEL}"), attr)
+
+
+#%%
+
+# # Aggregate target by channel and local windows (9*9)
+# WINDOW_SIZE = 9
 #
-# def model_wrapper_channel(inp):
+# def model_wrapper_window(inp):
 #     '''
-#     Wrap the model, the output becomes one value per each channel
+#     Wrap the model by down sampling the spatial resolution and agg speed/volume of 4 directions
 #     '''
-#     model_out = model(inp)
-#     return model_out.sum(axis=(2, 3))
+#     pooling_layer = nn.AvgPool2d(kernel_size=WINDOW_SIZE, stride=WINDOW_SIZE)
+#     model_out = pooling_layer(model(inp))
+#     model_agg = model_out.reshape((model_out.shape[0],-1,4,model_out.shape[2],model_out.shape[3])).sum(axis=2)
+#     return model_agg
 #
 # # Forward by wrapper
 # with torch.no_grad():
-#     pred_wrapper = model_wrapper_channel(inputs)
+#     pred_wrapper = model_wrapper_window(inputs)
 #
 # from captum.attr import Saliency
 #
-# TARGET_CHANNEL = 0
+# TARGET_CHANNEL = 1
+# TARGET_X = 340//WINDOW_SIZE
+# TARGET_Y = 245//WINDOW_SIZE
 #
 # # Preserve gradients
 # inputs.requires_grad = True
-# sa = Saliency(model_wrapper_channel)
+# sa = Saliency(model_wrapper_window)
 #
-# attr = sa.attribute(inputs, abs=True, target=TARGET_CHANNEL)
+# attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL,TARGET_X,TARGET_Y))
 # attr = attr.detach().numpy()
 #
-# np.save(os.path.join(arr_log_root, os.path.split(file_path)[-1][:-3] + f"{startt}-saliency-target-channel{TARGET_CHANNEL}"), attr)
-
-
-#%%
-
-# Aggregate target by channel and local windows (9*9)
-WINDOW_SIZE = 9
+# np.save(os.path.join(arr_log_root,
+#                      os.path.split(file_path)[-1][:-3]
+#                      + f"{startt}-saliency-target-channel{TARGET_CHANNEL}-W{TARGET_X}-{TARGET_Y}"),
+#         attr)
