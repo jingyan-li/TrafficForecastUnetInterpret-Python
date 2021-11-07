@@ -2,7 +2,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-from utils import visualizer
+from utils import visualize_utils
 
 
 log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\attribution_pickle"
@@ -50,7 +50,7 @@ agg_channel = np.sum(attr[0].reshape(attr[0].shape[0], -1), axis=1)
 # By static features
 
 agg_static = agg_channel[108:]
-plt.bar(x=[v for k, v in sorted(visualizer.input_static_semantic_dict.items(), key=lambda _:_[0])], height=agg_static)
+plt.bar(x=[v for k, v in sorted(visualize_utils.input_static_semantic_dict.items(), key=lambda _:_[0])], height=agg_static)
 plt.ylabel("Gradient value")
 plt.xlabel("Static features")
 plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3] + f"-attr-static.{file_format}"),
@@ -85,12 +85,12 @@ import matplotlib.patches as patches
 from matplotlib.colors import LogNorm
 # Visualize attribution by volume, speed, incident level per time epoch
 # only the target pixel or its surroundings (one to two pixels) impact its prediction
-for i in range(11,12):
+for i in range(12):
     start_epoch = i
     x = attr[0, start_epoch*9:(start_epoch+1)*9, :, :]
 
     fig, axes = plt.subplots(1, 3, sharey=True)
-    visualizer.attr_one_time_epoch(fig, axes, x, max=x.max(), min=x.min())
+    visualize_utils.attr_one_time_epoch(fig, axes, x, max=x.max(), min=x.min())
     for i in range(3):
         rect = patches.Rectangle((window[1]*window_size, window[0]*window_size),
                                  window_size, window_size,

@@ -13,9 +13,9 @@ from tqdm import tqdm
 
 sys.path.append(os.getcwd())
 
-from unet.model.config import config
+from unet.model.config_train import config
 from unet.model.Unet import UNet
-from utils import visualizer, dataloader
+from utils import visualize_utils, dataload_utils
 
 import matplotlib.pyplot as plt
 
@@ -45,7 +45,7 @@ model.eval()
 
 # load static data
 filepath = glob.glob(os.path.join(source_root, city, f"{city}_static_2019.h5"))[0]
-static = dataloader.load_h5_file(filepath)
+static = dataload_utils.load_h5_file(filepath)
 static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float()
 
 #%%
@@ -53,7 +53,7 @@ static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float
 DATE = "2019-09-29"
 TIME = 55
 file_path = glob.glob(os.path.join(source_root, city, "validation", f"{DATE}_{city.lower()}_9ch.h5"))[0]
-all_data = dataloader.load_h5_file(file_path)
+all_data = dataload_utils.load_h5_file(file_path)
 all_data = np.moveaxis(all_data, -1, 1)
 #%%
 # Choose a time epoch in train data as a train sample

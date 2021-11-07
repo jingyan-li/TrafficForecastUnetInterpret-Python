@@ -1,10 +1,11 @@
 #  Author: 2021. Jingyan Li
+#  Calculate abnormality level for validation days
 
 import h5py
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from utils import dataloader
+from utils import dataload_utils
 import glob
 import pickle
 #%%
@@ -29,7 +30,7 @@ FILES = ["2019-07-11_berlin_9ch.h5",
 incident_dict = {}
 for FILE in FILES:
     DATE = FILE.split("_")[0]
-    d = dataloader.load_h5_file(os.path.join(DATA_DIR, FILE))
+    d = dataload_utils.load_h5_file(os.path.join(DATA_DIR, FILE))
 
     incident = d[:, :, :, -1]
     incident_level = np.sum(incident, axis=(1, 2))/(495*436)

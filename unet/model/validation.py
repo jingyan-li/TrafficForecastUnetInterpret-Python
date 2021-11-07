@@ -1,5 +1,4 @@
-#  Author: 2021. Jingyan Li
-# Reference:
+# Do validation over the final model
 
 import numpy as np
 import torch
@@ -8,110 +7,115 @@ import h5py
 from pathlib import Path
 import pickle
 import sys, os, glob
-import datetime as dt
+from datetime import datetime
 from tqdm import tqdm
+import random
+from videoloader import trafic4cast_dataset
+# from visualizer import Visualizer
 
 sys.path.append(os.getcwd())
 
-from unet.model.config import config
+from unet.model.config_train import config
+from unet.model.config_validate import config_val
 from unet.model.Unet import UNet
 
-# simplified depth 5 model
 
-# please enter the source data root and submission root
-source_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\ori"
-submission_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\submission"
-
-model_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\UnetDeep_1632078207\checkpoint.pt"
-mask_root = r"utils/masks.dict"
-
-figure_log_root = "unet/log/figures/"
+city = config["city"]
+if config_val["debug"] == True:
+    networkName = "Test"
+else:
+    networkName = "UnetDeep_"
 
 
-def load_h5_file(file_path):
-    """
-    Given a file path to an h5 file assumed to house a tensor,
-    load that tensor into memory and return a pointer.
-    """
-    # load
-    fr = h5py.File(file_path, "r")
-    a_group_key = list(fr.keys())[0]
-    data = list(fr[a_group_key])
-    # transform to appropriate numpy array
-    data = data[0:]
-    data = np.stack(data, axis=0)
-    return data
+def validate(model, val_loader, device, writer, mse_arr, mask=None):
+    # random_visualize = random.randint(0, len(val_loader))
+    # if config["debug"] == True:
+    #     random_visualize = 0
 
+    padd = torch.nn.ZeroPad2d((6, 6, 8, 9))
 
-class WrappedModel(torch.nn.Module):
-    def __init__(self, module):
-        super(WrappedModel, self).__init__()
-        self.module = module  # that I actually define.
-
-    def forward(self, x):
-        return self.module(x)
-
-
-print(f"CUDA is available: {torch.cuda.is_available()}")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-model = UNet(img_ch=config["in_channels"], output_ch=config["n_classes"]).to(device)
-# model = WrappedModel(model).to(device)
-city = "Berlin"
-
-# TODO: ASK: What is mask_dict here?
-# mask_dict = pickle.load(open(mask_root, "rb"))
-
-padd = torch.nn.ZeroPad2d((6, 6, 8, 9))
-
-state_dict = torch.load(model_root, map_location=device)
-model.load_state_dict(state_dict)
-model.eval()
-#%%
-# load static data
-filepath = glob.glob(os.path.join(source_root, city, f"{city}_static_2019.h5"))[0]
-static = load_h5_file(filepath)
-static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float()
-
-# load mask
-# mask_ = torch.from_numpy(mask_dict[city]["sum"] > 0).bool()
-
-#%%
-# get test data
-file_paths = glob.glob(os.path.join(source_root, city, "testing", "*.h5"))
-for path in tqdm(file_paths):
-    # the date of the file
-    all_data = load_h5_file(path)
-    x = np.moveaxis(all_data, -1, 2)
-
-    x = torch.from_numpy(x).to(device)
-    # reduce
-    x = x.reshape(x.shape[0], -1, x.shape[-2], x.shape[-1])
-
-    # concat the static data
-    x = torch.cat([x, static.repeat(x.shape[0], 1, 1, 1)], axis=1)
-    x = x / 255
-
+    total_val_loss = 0
+    # change to validation mode
+    model.eval()
     with torch.no_grad():
-        inputs = padd(x)
-        pred = model(inputs)
+        for i, (val_inputs, val_y, startt_idx) in tqdm(enumerate(val_loader, 0)):
+            val_inputs = val_inputs / 255
 
-        # expand
-        pred = pred.view(pred.shape[0], 6, 8, pred.shape[-2], pred.shape[-1])
-        res = pred[:, :, :, 1:, 6:-6].cpu().float()
+            val_inputs = padd(val_inputs).to(device)
+            val_y = val_y.to(device)
 
-    # apply mask
-    # masks = mask_.expand(res.shape)
-    # res[~masks] = 0
+            val_output = model(val_inputs)
+            if mask is not None:
+                masks = padd(mask).expand(val_output.shape)
+                val_output[~masks] = 0
 
-    res = torch.clamp(res, 0, 255).permute(0, 1, 3, 4, 2).numpy().astype(np.uint8)
+            val_loss_size = torch.nn.functional.mse_loss(val_output[:, :, 8:-9, 6:-6], val_y)
+            mse_arr[startt_idx[0]] = val_loss_size
+            # write the validation loss to tensorboard
+            if writer is not None:
+                writer.write_loss_validation(val_loss_size, startt_idx[0])
 
-    # create saving root
-    root = os.path.join(submission_root, city.upper())
-    if not os.path.exists(root):
-        os.makedirs(root)
+            if i % 270 == 0:
+                print("Validation mse = {:.2f}".format(val_loss_size))
 
-    # save predictions
-    target_file = os.path.join(root, path.split("\\")[-1])
-    with h5py.File(target_file, "w", libver="latest",) as f:
-        f.create_dataset("array", shape=(res.shape), data=res, compression="gzip", compression_opts=4)
+            total_val_loss += val_loss_size.item()
+
+            # # each epoch select one prediction set (one batch) to visualize
+            # if i == random_visualize:
+            #     writer.write_video(val_output.cpu(), epoch, if_predict=True)
+            #     writer.write_video(val_y.cpu(), epoch, if_predict=False)
+            if config_val["debug"] == True:
+                break
+
+    val_loss = total_val_loss / len(val_loader)
+    print("Validation loss = {:.2f}".format(val_loss))
+    # # write the validation loss to tensorboard
+    # writer.write_loss_validation(val_loss, epoch)
+    return mse_arr
+
+
+if __name__ == "__main__":
+    dataset_val = trafic4cast_dataset(
+        source_root=config_val["source_root"], split_type="validation", cities=[city], reduce=True, include_static=True
+    )
+
+    val_loader = torch.utils.data.DataLoader(
+        dataset_val, batch_size=config_val["batch_size"], shuffle=False, num_workers=config_val["num_workers"]
+    )
+
+    device = config["device"]
+
+    # define the network structure -- UNet
+    # the output size is not always equal to your input size !!!
+    model = UNet(img_ch=config["in_channels"], output_ch=config["n_classes"])
+    # model = nn.DataParallel(model)
+    model.to(device)
+
+    # please enter the mask dir
+    # mask_dir = ""
+    # mask_dict = pickle.load(open(mask_dir, "rb"))
+    # mask_ = torch.from_numpy(mask_dict[city]["sum"] > 0).bool()
+
+    if config_val["tensor_board"]:
+        from visualizer import Visualizer
+
+        log_dir = "../runs/" + networkName + str(int(datetime.now().timestamp()))
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        writer = Visualizer(log_dir)
+    else:
+        writer = None
+
+    # # get the trainable paramters
+    # model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    # params = sum([np.prod(p.size()) for p in model_parameters])
+    # print("# of parameters: ", params)
+
+    # Store log
+    mse_arr = np.zeros(dataset_val.__len__())
+
+    mask = None
+    epoch = 0
+    val_loss_arr = validate(model, val_loader, device, writer, mse_arr, mask)
+
+    np.save(os.path.join(config_val["log_root"], networkName + "validation_mse.npy"), val_loss_arr)
