@@ -1,0 +1,39 @@
+Sender: LSF System <lsfadmin@eu-g3-069>
+Subject: Job 191040472: <python validation.py> in cluster <euler> Exited
+
+Job <python validation.py> was submitted from host <eu-login-38> by user <jingyli> in cluster <euler> at Sun Nov  7 21:02:56 2021
+Job was executed on host(s) <eu-g3-069>, in queue <gpuhe.4h>, as user <jingyli> in cluster <euler> at Mon Nov  8 00:01:55 2021
+</cluster/home/jingyli> was used as the home directory.
+</cluster/scratch/jingyli/ipa/ipa_code/unet/model> was used as the working directory.
+Started at Mon Nov  8 00:01:55 2021
+Terminated at Mon Nov  8 00:02:11 2021
+Results reported at Mon Nov  8 00:02:11 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python validation.py
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   2.94 sec.
+    Max Memory :                                 1023 MB
+    Average Memory :                             365.00 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               1.00 MB
+    Max Swap :                                   1 MB
+    Max Processes :                              3
+    Max Threads :                                4
+    Run time :                                   15 sec.
+    Turnaround time :                            10755 sec.
+
+The output (if any) follows:
+
+Traceback (most recent call last):
+  File "validation.py", line 13, in <module>
+    from videoloader import trafic4cast_dataset
+ModuleNotFoundError: No module named 'videoloader'

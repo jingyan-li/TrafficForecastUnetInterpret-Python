@@ -77,10 +77,11 @@ tepoch = tepoch / 255
 # # Visualize the input data
 # for i in range(12):
 #     start_epoch = i
+#     # For 1 timestamp
 #     x = tepoch[0, start_epoch*9:(start_epoch+1)*9, :, :].cpu().float().numpy()
 #
 #     fig, axes = plt.subplots(1, 3, sharey=True)
-#     visualizer.one_time_epoch(fig, axes, x)
+#     visualize_utils.one_time_epoch(fig, axes, x)
 #     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-input-startt{start_epoch}.png"),
 #                 bbox_inches="tight")
 #     plt.show()
@@ -91,7 +92,7 @@ tepoch = tepoch / 255
 #     x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
 #
 #     fig, axes = plt.subplots(1, 2, sharey=True)
-#     visualizer.one_time_epoch(fig, axes, x, incidence=False)
+#     visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
 #     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
 #                 bbox_inches="tight")
 #     plt.show()
@@ -111,14 +112,29 @@ with torch.no_grad():
 #     x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
 #
 #     fig, axes = plt.subplots(1, 2, sharey=True)
-#     visualizer.one_time_epoch(fig, axes, x, incidence=False)
+#     visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
 #     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
 #                 bbox_inches="tight")
 #     plt.show()
 #
+#%%
+# Visualize error map of speed and volume
+
+for i in range(6):
+    start_epoch = i
+    # Prediction
+    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
+    # Ground Truth
+    x_ = gt_epoch[0, start_epoch * 8:(start_epoch + 1) * 8, :, :] / 255
+    # Error
+    err = x - x_
+    fig, axes = plt.subplots(1, 2, sharey=True)
+    visualize_utils.one_time_epoch(fig, axes, err, incidence=False)
+    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-err-startt{start_epoch}.png"),
+                bbox_inches="tight")
+    plt.show()
 
 #%%
-
 # Test captum
 
 # Input single sample

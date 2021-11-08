@@ -14,9 +14,10 @@ FIG_DIR = r"C:\Users\jingyli\OwnDrive\IPA\result\raw_data_stats"
 #%%
 # # Iterate through all days and see days with highest incident level
 # for file in glob.glob(os.path.join(DATA_DIR,"*.h5")):
-#     d = dataloader.load_h5_file(file)
+#     d = dataload_utils.load_h5_file(file)
 #     incident = d[:, :, :, -1]
-#     incident_level = np.sum(incident, axis=(1, 2)) / (495 * 436)
+#     incident_level = np.sum(incident, axis=(1, 2)) / (495 * 436)  # Average incident level per time
+#     # incident_level = np.max(incident, axis=(1, 2))  # Max incident level per time stamp: almost 255
 #     print(file.split("\\")[-1])
 #     print(incident_level.max())
 
@@ -64,8 +65,10 @@ road = pickle.load(open(MASK_PATH, "rb"))
 
 #%%
 # Visualize road network
-plt.imshow(road, vmin=0, vmax=1, cmap="binary")
-plt.savefig(os.path.join(FIG_DIR, "road_network.png"), bbox_inches="tight")
+fig, axes = plt.subplots(1, 1,)
+axes.imshow(road, vmin=0, vmax=1, cmap="binary")
+plt.axis("off")
+plt.savefig(os.path.join(FIG_DIR, "road_network.png"), bbox_inches="tight", pad_inches=0, dpi=150)
 
 #%%
 LOG_DIR = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\eda\log\abnormal_pickle"
