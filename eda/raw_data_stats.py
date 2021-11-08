@@ -29,6 +29,9 @@ FILES = ["2019-07-11_berlin_9ch.h5",
          "2019-11-28_berlin_9ch.h5"
          ]
 incident_dict = {}
+#%%
+# Read and Plot incident level per day
+plot = False
 for FILE in FILES:
     DATE = FILE.split("_")[0]
     d = dataload_utils.load_h5_file(os.path.join(DATA_DIR, FILE))
@@ -36,12 +39,21 @@ for FILE in FILES:
     incident = d[:, :, :, -1]
     incident_level = np.sum(incident, axis=(1, 2))/(495*436)
     incident_dict[DATE] = incident
-    plt.plot(incident_level)
-    plt.savefig(os.path.join(FIG_DIR, DATE+".png"), bbox_inches="tight")
-    plt.show()
+    if plot:
+        plt.plot(incident_level)
+        plt.savefig(os.path.join(FIG_DIR, DATE+".png"), bbox_inches="tight")
+        plt.show()
 
 #%%
-abnormal_range = np.sum(incident_dict["2019-11-28"], axis=(1,2))/(495*436)
+selected_day = "2019-09-19"
+
+abnormal_range = np.sum(incident_dict[selected_day], axis=(1,2))/(495*436)
+
+startt = 48
+#%%
+# Incident level -  time correlation
+
+
 
 #%%
 # Heat map of incident map per time epoch
@@ -52,10 +64,26 @@ def plot_heatmap(ax, data, title):
 
 fig, axes = plt.subplots(1,10, figsize=(50,5))
 for i in range(len(axes)):
-    plot_heatmap(axes[i], incident_dict["2019-11-28"][92+i,:,:], f"2019-11-28-{92+i}")
-plt.savefig(os.path.join(FIG_DIR, "2019-11-28-97.png"), bbox_inches="tight")
+    plot_heatmap(axes[i], incident_dict[selected_day][startt+i,:,:], f"selected_day-{startt+i}")
+plt.savefig(os.path.join(FIG_DIR, f"{selected_day}-{startt}.png"), bbox_inches="tight")
 plt.show()
 
+#%%
+import matplotlib.patches as patches
+# Zoom into small area
+window = [16, 13]
+window_size = 21
+startt_ = 146
+fig, axes = plt.subplots(1,1, figsize=(10,10))
+plot_heatmap(axes, incident_dict[selected_day][startt_,:,:], f"selected_day-{startt_}")
+rect = patches.Rectangle((window[1] * window_size, window[0] * window_size),
+                         window_size, window_size,
+                         linewidth=2.5, edgecolor="red", facecolor="none")
+axes.add_patch(rect)
+# axes.set_xlim(window[1]*window_size-100,window[1]*window_size+100)
+# axes.set_ylim(window[0]*window_size-100,window[0]*window_size+100)
+plt.savefig(os.path.join(FIG_DIR, f"{selected_day}-{startt_}-zoomin.png"), bbox_inches="tight")
+plt.show()
 
 #%%
 # Road Mask
@@ -63,23 +91,29 @@ MASK_PATH = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\utils\Berlin.mask"
 
 road = pickle.load(open(MASK_PATH, "rb"))
 
-#%%
-# Visualize road network
-fig, axes = plt.subplots(1, 1,)
-axes.imshow(road, vmin=0, vmax=1, cmap="binary")
-plt.axis("off")
-plt.savefig(os.path.join(FIG_DIR, "road_network.png"), bbox_inches="tight", pad_inches=0, dpi=150)
+# #%%
+# # Visualize road network
+# fig, axes = plt.subplots(1, 1,)
+# axes.imshow(road, vmin=0, vmax=1, cmap="binary")
+# plt.axis("off")
+# plt.savefig(os.path.join(FIG_DIR, "road_network.png"), bbox_inches="tight", pad_inches=0, dpi=150)
 
 #%%
 LOG_DIR = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\eda\log\abnormal_pickle"
 # If there is any overlap between road network and abnormal region
-incident_sample = incident_dict["2019-09-29"][251]
+incident_sample = incident_dict[selected_day][startt]
 # Select high incident and within road network
 abnormal_region = np.where((incident_sample > 250) & road)
-pickle.dump(abnormal_region, open(os.path.join(LOG_DIR, "2019-07-11-251"), "wb" ))
+pickle.dump(abnormal_region, open(os.path.join(LOG_DIR, f"{selected_day}-{startt}"), "wb" ))
 #%%
-# Print abnormal region
-idx = 52
-print(f"x: {abnormal_region[0][idx]}, y: {abnormal_region[1][idx]}")
+# Filter some abnormal regions
+import pandas as pd
+_ = np.array(abnormal_region).transpose()
+abnormal_df = pd.DataFrame(_, columns=["y", "x"])
+
+# #%%
+# # Print abnormal region
+# idx = 52
+# print(f"x: {abnormal_region[0][idx]}, y: {abnormal_region[1][idx]}")
 
 

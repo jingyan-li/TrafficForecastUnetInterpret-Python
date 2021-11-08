@@ -20,7 +20,7 @@ def one_prediction_sample(sample, path):
     plt.show()
 
 
-def one_time_epoch(fig, axes, data, incidence=True):
+def one_time_epoch(fig, axes, data, incidence=True, vmin=0, vmax=250, colorbar=True):
     '''
     Three plots per one time epoch (5 mins): average volume, average speed, incident level
     '''
@@ -30,8 +30,8 @@ def one_time_epoch(fig, axes, data, incidence=True):
     if incidence:
         incident_idx = 8
 
-    cbar = axes[0].imshow(np.mean(data[volume_idx, :, :], axis=0), vmin=0, vmax=250, cmap='RdBu_r')
-    axes[1].imshow(np.mean(data[speed_idx, :, :], axis=0), vmin=0, vmax=250, cmap='RdBu_r')
+    cbar = axes[0].imshow(np.mean(data[volume_idx, :, :], axis=0), vmin=vmin, vmax=vmax, cmap='RdBu_r')
+    axes[1].imshow(np.mean(data[speed_idx, :, :], axis=0), vmin=vmin, vmax=vmax, cmap='RdBu_r')
 
     axes[0].set_title("Average volume")
     axes[1].set_title("Average speed")
@@ -40,12 +40,13 @@ def one_time_epoch(fig, axes, data, incidence=True):
     axes[1].tick_params("y", left=True, right=True, labelleft=False, labelright=False)
 
     if incidence:
-        axes[2].imshow(data[incident_idx, :, :], vmin=0, vmax=250, cmap='RdBu_r')
+        axes[2].imshow(data[incident_idx, :, :], vmin=vmin, vmax=vmax, cmap='RdBu_r')
         axes[2].set_title("Incident level")
         axes[2].tick_params("y", left=True, right=True, labelleft=False, labelright=True)
 
-    fig.colorbar(cbar, ax=axes, location="bottom", orientation="horizontal", pad=0.1, aspect=60)
-
+    if colorbar:
+        fig.colorbar(cbar, ax=axes, location="bottom", orientation="horizontal", pad=0.1, aspect=60)
+    return cbar
 
 def attr_one_time_epoch(fig, axes, data, max, min, log_scale=True):
     '''
