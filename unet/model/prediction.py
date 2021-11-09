@@ -3,18 +3,14 @@
 
 import numpy as np
 import torch
-import torch.nn as nn
 import h5py
-from pathlib import Path
-import pickle
 import sys, os, glob
-import datetime as dt
 from tqdm import tqdm
 
 sys.path.append(os.getcwd())
 
-from unet.model.config_train import config
-from unet.model.config_validate import config_val
+from unet.model.config.config_train import config
+from unet.model.config.config_local import config_val
 from unet.model.Unet import UNet
 
 # simplified depth 5 model
@@ -102,6 +98,7 @@ for path in tqdm(file_paths):
         # expand
         pred = pred.view(pred.shape[0], 6, 8, pred.shape[-2], pred.shape[-1])
         res = pred[:, :, :, 1:, 6:-6].cpu().float()
+        print()
 
     # apply mask
     # masks = mask_.expand(res.shape)

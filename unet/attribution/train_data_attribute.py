@@ -4,16 +4,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import h5py
-from pathlib import Path
-import pickle
 import sys, os, glob
-import datetime as dt
-from tqdm import tqdm
 
 sys.path.append(os.getcwd())
 
-from unet.model.config_train import config
+from unet.model.config.config_train import config
 from unet.model.Unet import UNet
 from utils import visualize_utils, dataload_utils
 

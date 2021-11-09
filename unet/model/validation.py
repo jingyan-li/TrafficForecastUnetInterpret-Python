@@ -2,21 +2,16 @@
 
 import numpy as np
 import torch
-import torch.nn as nn
-import h5py
-from pathlib import Path
-import pickle
-import sys, os, glob
+import sys, os
 from datetime import datetime
 from tqdm import tqdm
-import random
 from videoloader import trafic4cast_dataset
 # from visualizer import Visualizer
 
 sys.path.append(os.getcwd())
 
-from unet.model.config_train import config
-from unet.model.config_validate import config_val
+from unet.model.config.config_train import config
+from unet.model.config.config_validate import config_val
 from unet.model.Unet import UNet
 
 
