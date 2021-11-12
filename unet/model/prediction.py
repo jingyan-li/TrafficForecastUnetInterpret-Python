@@ -9,8 +9,8 @@ from tqdm import tqdm
 
 sys.path.append(os.getcwd())
 
-from unet.model.config.config import config
-from unet.model.config.config import config_val
+from unet.model.config.config_train import config
+from unet.model.config.config_validate import config_val
 from unet.model.Unet import UNet
 
 # simplified depth 5 model
