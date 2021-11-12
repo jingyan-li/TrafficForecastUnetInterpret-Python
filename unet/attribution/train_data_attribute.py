@@ -8,7 +8,7 @@ import sys, os, glob
 
 sys.path.append(os.getcwd())
 
-from unet.model.config.config_train import config
+from unet.model.config.config import config
 from unet.model.Unet import UNet
 from utils import visualize_utils, dataload_utils
 
