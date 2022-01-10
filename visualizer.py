@@ -1,3 +1,6 @@
+'''
+Reference: https://github.com/hong2223/traffic4cast2020
+'''
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 import torch

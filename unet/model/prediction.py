@@ -1,6 +1,6 @@
-#  Author: 2021. Jingyan Li
-# Reference:
-
+'''
+Source: https://github.com/hong2223/traffic4cast2020
+'''
 import numpy as np
 import torch
 import h5py

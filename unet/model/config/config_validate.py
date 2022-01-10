@@ -1,4 +1,6 @@
 ### Validation directory configuration
+# Configuration for server
+
 config_val = dict()
 
 config_val["source_root"] = r"../../../data/ori"

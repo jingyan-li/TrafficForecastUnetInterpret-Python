@@ -1,3 +1,6 @@
+#  Author: 2021. Jingyan Li
+#  Visualize attribution by matplotlib when targeting to a single pixel
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt

@@ -1,3 +1,7 @@
+# Authoer: 2021. Jingyan Li
+# Visualize attribution in matplotlib when targeting to a window in the output
+
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt

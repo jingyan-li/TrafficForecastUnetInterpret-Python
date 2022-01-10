@@ -1,3 +1,7 @@
+'''
+Reference: https://github.com/hong2223/traffic4cast2020
+'''
+
 import torch
 from torchvision import datasets, transforms
 

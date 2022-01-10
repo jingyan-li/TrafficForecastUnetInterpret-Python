@@ -1,4 +1,3 @@
-#  Author: 2021. Jingyan Li
 # Source: https://github.com/hong2223/traffic4cast2020/blob/main/Unet/UNet.py
 
 import torch

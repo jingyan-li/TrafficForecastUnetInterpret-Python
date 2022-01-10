@@ -1,5 +1,6 @@
 #  Author: 2021. Jingyan Li
-# Reference:
+
+# Conduct attribution
 
 import numpy as np
 import torch
@@ -22,7 +23,7 @@ source_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\ori"
 model_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\resUnet_1634736536\checkpoint.pt"
 
 figure_log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\figures\resUnet"
-arr_log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\attribution_pickle\resUnet"
+arr_log_root = r"C:\Users\jingyli\OwnDrive\IPA\attribution_Result\unet\attribution_pickle\resUnet"
 
 
 print(f"CUDA is available: {torch.cuda.is_available()}")
@@ -30,7 +31,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = UNet(img_ch=config["in_channels"], output_ch=config["n_classes"]).to(device)
 city = "Berlin"
-
 
 padd = torch.nn.ZeroPad2d((6, 6, 8, 9))
 
@@ -45,7 +45,7 @@ static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float
 
 #%%
 # Load train data
-DATE = "2019-09-29"
+DATE = "2019-09-19"
 TIME = 142
 file_path = glob.glob(os.path.join(source_root, city, "validation", f"{DATE}_{city.lower()}_9ch.h5"))[0]
 all_data = dataload_utils.load_h5_file(file_path)
@@ -70,28 +70,28 @@ tepoch = tepoch / 255
 
 
 #%%
-# # Visualize the input data
-# for i in range(12):
-#     start_epoch = i
-#     # For 1 timestamp
-#     x = tepoch[0, start_epoch*9:(start_epoch+1)*9, :, :].cpu().float().numpy()
-#
-#     fig, axes = plt.subplots(1, 3, sharey=True)
-#     visualize_utils.one_time_epoch(fig, axes, x)
-#     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-input-startt{start_epoch}.png"),
-#                 bbox_inches="tight")
-#     plt.show()
-# #%%
-# # Visualize ground truth
-# for i in range(6):
-#     start_epoch = i
-#     x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
-#
-#     fig, axes = plt.subplots(1, 2, sharey=True)
-#     visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
-#     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
-#                 bbox_inches="tight")
-#     plt.show()
+# Visualize the input data
+for i in range(12):
+    start_epoch = i
+    # For 1 timestamp
+    x = tepoch[0, start_epoch*9:(start_epoch+1)*9, :, :].cpu().float().numpy()
+
+    fig, axes = plt.subplots(1, 3, sharey=True)
+    visualize_utils.one_time_epoch(fig, axes, x)
+    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-input-startt{start_epoch}.png"),
+                bbox_inches="tight")
+    plt.show()
+#%%
+# Visualize ground truth
+for i in range(6):
+    start_epoch = i
+    x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
+
+    fig, axes = plt.subplots(1, 2, sharey=True)
+    visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
+    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
+                bbox_inches="tight")
+    plt.show()
 #%%
 
 # Preprocess of input
@@ -102,37 +102,41 @@ with torch.no_grad():
     pred = model(inputs)
 
 #%%
-# # Visualize the prediction result
-# for i in range(6):
-#     start_epoch = i
-#     x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
-#
-#     fig, axes = plt.subplots(1, 2, sharey=True)
-#     visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
-#     plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
-#                 bbox_inches="tight")
-#     plt.show()
-#
+# Save prediction & error map for the prediction
+gt_epoch_pad = padd(gt_epoch).numpy()
+pred = pred.detach().numpy()
+# Agg volume/speed
+volume_idx = np.arange(0, 8, 2)
+speed_idx = np.arange(1, 8, 2)
+v_gt_epoch = np.mean(gt_epoch_pad[:,volume_idx, :, :], axis=1)
+s_gt_epoch = np.mean(gt_epoch_pad[:,speed_idx, :, :], axis=1)
+v_pred = np.mean(pred[:,volume_idx, :, :], axis=1)
+s_pred = np.mean(pred[:,speed_idx, :, :], axis=1)
+
+out = np.concatenate([v_pred,
+                      s_pred,
+                      v_gt_epoch-v_pred,
+                      s_gt_epoch-s_pred
+                      ])
 #%%
-# Visualize error map of speed and volume
-fig, axes = plt.subplots(7, 2, sharey=True, figsize=(10,34))
-cbar = None
+np.save(os.path.join(arr_log_root,
+                     os.path.split(file_path)[-1][:-3]
+                     + f"{startt}-err-pred"),
+        out)
+
+#%%
+# Visualize the prediction result
 for i in range(6):
     start_epoch = i
-    # Prediction
-    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy() / 255
-    # Ground Truth
-    gt_epoch_pad = padd(gt_epoch[:1, :, :, :])
-    x_ = gt_epoch_pad[0, start_epoch * 8:(start_epoch + 1) * 8, :, :].numpy() / 255
-    # Error
-    err = x - x_
-    cbar = visualize_utils.one_time_epoch(fig, axes[i], err, incidence=False, vmin=-1, vmax=1, colorbar=False)
+    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
 
-fig.colorbar(cbar, ax=axes[-1], location="bottom", orientation="horizontal", pad=0.1, aspect=60)
+    fig, axes = plt.subplots(1, 2, sharey=True)
+    visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
+    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
+                bbox_inches="tight")
+    plt.show()
 
-plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-err.png"),
-            bbox_inches="tight")
-plt.show()
+
 
 #%%
 # # Test captum
@@ -198,7 +202,7 @@ plt.show()
 
 #%%
 
-# Aggregate target by channel and local windows (9*9)
+# Aggregate target by channel and local windows (WINDOWSIZE*WINDOWSIZE)
 WINDOW_SIZE = 21
 
 def model_wrapper_window(inp):
@@ -216,9 +220,9 @@ with torch.no_grad():
 
 from captum.attr import Saliency
 
-TARGET_CHANNEL = 0
-TARGET_X = 336//WINDOW_SIZE
-TARGET_Y = 282//WINDOW_SIZE
+TARGET_CHANNEL = 1
+TARGET_X = 286//WINDOW_SIZE
+TARGET_Y = 121//WINDOW_SIZE
 
 # Preserve gradients
 inputs.requires_grad = True
@@ -231,3 +235,33 @@ np.save(os.path.join(arr_log_root,
                      os.path.split(file_path)[-1][:-3]
                      + f"{startt}-saliency-target-channel{TARGET_CHANNEL}-W{TARGET_X}-{TARGET_Y}"),
         attr)
+
+#%%
+import matplotlib.patches as patches
+# Visualize error map of speed and volume
+window = [TARGET_X, TARGET_Y]
+fig, axes = plt.subplots(7, 2, sharey=True, figsize=(10,34))
+cbar = None
+for i in range(6):
+    start_epoch = i
+    # Prediction
+    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy() / 255
+    # Ground Truth
+    gt_epoch_pad = padd(gt_epoch[:1, :, :, :])
+    x_ = gt_epoch_pad[0, start_epoch * 8:(start_epoch + 1) * 8, :, :].numpy() / 255
+    # Error
+    err = x - x_
+    cbar = visualize_utils.one_time_epoch(fig, axes[i], err, incidence=False, vmin=-1, vmax=1, colorbar=False)
+    for ax in axes[i]:
+        rect = patches.Rectangle((window[1] * WINDOW_SIZE, window[0] * WINDOW_SIZE),
+                                 WINDOW_SIZE, WINDOW_SIZE,
+                                 linewidth=2.5, edgecolor="red", facecolor="none")
+        ax.add_patch(rect)
+        ax.set_xlim(window[1] * WINDOW_SIZE - 100, window[1] * WINDOW_SIZE + 100)
+        ax.set_ylim(window[0] * WINDOW_SIZE - 100, window[0] * WINDOW_SIZE + 100)
+fig.colorbar(cbar, ax=axes[-1], location="bottom", orientation="horizontal", pad=0.1, aspect=60)
+
+plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]
+                         + f"{startt}-w{TARGET_X}_{TARGET_Y}-err.png"),
+            bbox_inches="tight")
+plt.show()
