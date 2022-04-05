@@ -16,7 +16,7 @@ from utils import dataload_utils
 import time
 import argparse
 
-# simplified depth 5 model
+
 ####### training settings #########
 parser = argparse.ArgumentParser()
 parser.add_argument("--date", default="2019-09-19", type=str, help="dates in validation set you want to conduct attribution; can be a list of dates, splited by comma")

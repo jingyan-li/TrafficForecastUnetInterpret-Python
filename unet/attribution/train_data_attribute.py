@@ -15,15 +15,21 @@ from utils import visualize_utils, dataload_utils
 
 import matplotlib.pyplot as plt
 
-# simplified depth 5 model
 
 # please enter the source data root and submission root
 source_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\ori"
 
-model_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\resUnet_1634736536\checkpoint.pt"
+model_root = r"C:\Users\jingyli\OwnDrive\IPA\data\2021_IPA\UnetDeep_Good\checkpoint.pt"
 
-figure_log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\figures\resUnet"
-arr_log_root = r"C:\Users\jingyli\OwnDrive\IPA\attribution_Result\unet\attribution_pickle\resUnet"
+figure_log_root = r"C:\Users\jingyli\OwnDrive\RA\unet_good\figures"
+arr_log_root = r"C:\Users\jingyli\OwnDrive\RA\unet_good\attribution_pickle"
+
+
+if not os.path.exists(figure_log_root):
+    os.makedirs(figure_log_root)
+
+if not os.path.exists(arr_log_root):
+    os.makedirs(arr_log_root)
 
 
 print(f"CUDA is available: {torch.cuda.is_available()}")
@@ -47,6 +53,14 @@ static = torch.from_numpy(static).permute(2, 0, 1).unsqueeze(0).to(device).float
 # Load train data
 DATE = "2019-09-19"
 TIME = 142
+# Output path
+arr_log_root = os.path.join(arr_log_root, f"{DATE}_{TIME}")
+if not os.path.exists(arr_log_root):
+    os.makedirs(arr_log_root)
+figure_log_root = os.path.join(figure_log_root, f"{DATE}_{TIME}")
+if not os.path.exists(figure_log_root):
+    os.makedirs(figure_log_root)
+
 file_path = glob.glob(os.path.join(source_root, city, "validation", f"{DATE}_{city.lower()}_9ch.h5"))[0]
 all_data = dataload_utils.load_h5_file(file_path)
 all_data = np.moveaxis(all_data, -1, 1)
@@ -69,29 +83,35 @@ tepoch = torch.cat([tepoch, static.repeat(tepoch.shape[0], 1, 1, 1)], axis=1)
 tepoch = tepoch / 255
 
 
-#%%
-# Visualize the input data
-for i in range(12):
-    start_epoch = i
-    # For 1 timestamp
-    x = tepoch[0, start_epoch*9:(start_epoch+1)*9, :, :].cpu().float().numpy()
-
-    fig, axes = plt.subplots(1, 3, sharey=True)
-    visualize_utils.one_time_epoch(fig, axes, x)
-    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-input-startt{start_epoch}.png"),
-                bbox_inches="tight")
-    plt.show()
-#%%
-# Visualize ground truth
-for i in range(6):
-    start_epoch = i
-    x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
-
-    fig, axes = plt.subplots(1, 2, sharey=True)
-    visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
-    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
-                bbox_inches="tight")
-    plt.show()
+# #%%
+# # Visualize the input data
+# input_figure_path = os.path.join(figure_log_root, "input")
+# if not os.path.exists(input_figure_path):
+#     os.makedirs(input_figure_path)
+# for i in range(12):
+#     start_epoch = i
+#     # For 1 timestamp
+#     x = tepoch[0, start_epoch*9:(start_epoch+1)*9, :, :].cpu().float().numpy()
+#
+#     fig, axes = plt.subplots(1, 3, sharey=True)
+#     visualize_utils.one_time_epoch(fig, axes, x)
+#     plt.savefig(os.path.join(input_figure_path, os.path.split(file_path)[-1][:-3]+f"{startt}-input-startt{start_epoch}.png"),
+#                 bbox_inches="tight")
+#
+# #%%
+# # Visualize ground truth
+# gt_figure_path = os.path.join(figure_log_root, "gt")
+# if not os.path.exists(gt_figure_path):
+#     os.makedirs(gt_figure_path)
+# for i in range(6):
+#     start_epoch = i
+#     x = gt_epoch[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
+#
+#     fig, axes = plt.subplots(1, 2, sharey=True)
+#     visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
+#     plt.savefig(os.path.join(gt_figure_path, os.path.split(file_path)[-1][:-3]+f"{startt}-gt-startt{start_epoch}.png"),
+#                 bbox_inches="tight")
+#
 #%%
 
 # Preprocess of input
@@ -126,79 +146,19 @@ np.save(os.path.join(arr_log_root,
 
 #%%
 # Visualize the prediction result
+pred_figure_path = os.path.join(figure_log_root, "pred")
+if not os.path.exists(pred_figure_path):
+    os.makedirs(pred_figure_path)
 for i in range(6):
     start_epoch = i
-    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy()/255
+    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :]/255
 
     fig, axes = plt.subplots(1, 2, sharey=True)
     visualize_utils.one_time_epoch(fig, axes, x, incidence=False)
-    plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
+    plt.savefig(os.path.join(pred_figure_path, os.path.split(file_path)[-1][:-3]+f"{startt}-pred-startt{start_epoch}.png"),
                 bbox_inches="tight")
-    plt.show()
 
 
-
-#%%
-# # Test captum
-#
-# # Input single sample
-# inputs.requires_grad = True
-#
-# # Attribution by Saliency
-# from captum.attr import Saliency
-#
-# TARGET_CHANNEL = 1
-# X = 336
-# Y = 282
-# sa = Saliency(model)
-#
-# attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL, X, Y))
-# attr = attr.detach().numpy()
-#
-# np.save(os.path.join(arr_log_root, os.path.split(file_path)[-1][:-3] + f"{startt}-saliency-target{TARGET_CHANNEL}-{X}-{Y}"), attr)
-#
-#
-# #%%
-#
-# # Aggregate the target by channel
-#
-# def model_wrapper_channel(inp):
-#     '''
-#     Wrap the model, the output becomes one value per each channel
-#     '''
-#     model_out = model(inp)
-#     return model_out.sum(axis=(2, 3))
-#
-#
-# def model_wrapper_firsttwoc(inp):
-#     '''
-#
-#     '''
-#     model_out = model(inp)
-#     return model_out.reshape(model_out.shape[0],
-#                              24,
-#                              2,
-#                              model_out.shape[-2],
-#                              model_out.shape[-1]).sum(axis=1)
-#
-#
-# # Forward by wrapper
-# with torch.no_grad():
-#     pred_wrapper = model_wrapper_firsttwoc(inputs)
-# #%%
-# from captum.attr import Saliency
-#
-# TARGET_CHANNEL = 0
-#
-# # Preserve gradients
-# inputs.requires_grad = True
-# sa = Saliency(model_wrapper_firsttwoc)
-#
-# attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL, X, Y))
-# attr = attr.detach().numpy()
-#
-# np.save(os.path.join(arr_log_root, os.path.split(file_path)[-1][:-3] + f"{startt}-saliency-target-channel{TARGET_CHANNEL}"), attr)
-#
 
 #%%
 
@@ -224,6 +184,11 @@ TARGET_CHANNEL = 1
 TARGET_X = 286//WINDOW_SIZE
 TARGET_Y = 121//WINDOW_SIZE
 
+# Attr_log_root
+attr_log_path = os.path.join(arr_log_root, f"W{TARGET_X}-{TARGET_Y}")
+if not os.path.exists(attr_log_path):
+    os.makedirs(attr_log_path)
+
 # Preserve gradients
 inputs.requires_grad = True
 sa = Saliency(model_wrapper_window)
@@ -231,7 +196,7 @@ sa = Saliency(model_wrapper_window)
 attr = sa.attribute(inputs, abs=True, target=(TARGET_CHANNEL,TARGET_X,TARGET_Y))
 attr = attr.detach().numpy()
 
-np.save(os.path.join(arr_log_root,
+np.save(os.path.join(attr_log_path,
                      os.path.split(file_path)[-1][:-3]
                      + f"{startt}-saliency-target-channel{TARGET_CHANNEL}-W{TARGET_X}-{TARGET_Y}"),
         attr)
@@ -239,13 +204,18 @@ np.save(os.path.join(arr_log_root,
 #%%
 import matplotlib.patches as patches
 # Visualize error map of speed and volume
+# Attr_figure_root
+figure_attr_path = os.path.join(figure_log_root, "attr", f"W{TARGET_X}-{TARGET_Y}")
+if not os.path.exists(figure_attr_path):
+    os.makedirs(figure_attr_path)
+
 window = [TARGET_X, TARGET_Y]
 fig, axes = plt.subplots(7, 2, sharey=True, figsize=(10,34))
 cbar = None
 for i in range(6):
     start_epoch = i
     # Prediction
-    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :].cpu().float().numpy() / 255
+    x = pred[0, start_epoch*8:(start_epoch+1)*8, :, :] / 255
     # Ground Truth
     gt_epoch_pad = padd(gt_epoch[:1, :, :, :])
     x_ = gt_epoch_pad[0, start_epoch * 8:(start_epoch + 1) * 8, :, :].numpy() / 255
@@ -261,7 +231,6 @@ for i in range(6):
         ax.set_ylim(window[0] * WINDOW_SIZE - 100, window[0] * WINDOW_SIZE + 100)
 fig.colorbar(cbar, ax=axes[-1], location="bottom", orientation="horizontal", pad=0.1, aspect=60)
 
-plt.savefig(os.path.join(figure_log_root, os.path.split(file_path)[-1][:-3]
+plt.savefig(os.path.join(figure_attr_path, os.path.split(file_path)[-1][:-3]
                          + f"{startt}-w{TARGET_X}_{TARGET_Y}-err.png"),
             bbox_inches="tight")
-plt.show()

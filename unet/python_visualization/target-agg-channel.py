@@ -1,4 +1,4 @@
-# Authoer: 2021. Jingyan Li
+# Author: 2021. Jingyan Li
 # Visualize attribution in matplotlib when targeting to a window in the output
 
 
@@ -9,11 +9,18 @@ import matplotlib.pyplot as plt
 from utils import visualize_utils
 
 
-log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\attribution_pickle"
-figure_log_root = r"C:\Users\jingyli\OwnDrive\IPA\python-eda-code\unet\log\figures"
 
-file_path = "2019-01-14_berlin_9ch96-saliency-target-channel0.npy"
-
+DATE = "2019-09-19"
+TIME = "142"
+CHANNEL = "1"
+W = f"{13}-{5}"
+file_path = f"{DATE}_berlin_9ch{TIME}-saliency-target-channel{CHANNEL}-W{W}.npy"
+figure_log_root = os.path.join(r"C:\Users\jingyli\OwnDrive\RA\unet_good\figures",
+                               f"{DATE}_{TIME}", "attr", f"W{W}")
+if not os.path.exists(figure_log_root):
+    os.makedirs(figure_log_root)
+log_root = os.path.join(r"C:\Users\jingyli\OwnDrive\RA\unet_good\attribution_pickle",
+                        f"{DATE}_{TIME}", f"W{W}")
 attr = np.load(os.path.join(log_root, file_path))
 
 file_format = "png"
